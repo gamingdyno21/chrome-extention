@@ -1,12 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
       input: {
-        popup: "src/popup/popup.html"
+        popup: resolve(__dirname, "src/popup/popup.html"),
+        dashboard: resolve(__dirname, "src/dashboard/dashboard.html")
       }
     }
   }

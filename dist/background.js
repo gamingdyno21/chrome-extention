@@ -2,33 +2,13 @@ let activeTabId = null;
 let activeDomain = null;
 let startTime = null;
 
-// -----------------------------
-// Site classification
-// -----------------------------
-function classifySite(domain) {
-  const productiveSites = [
-    "leetcode.com",
-    "github.com",
-    "hackerrank.com",
-    "geeksforgeeks.org",
-    "stackoverflow.com"
-  ];
+const PRODUCTIVE_SITES = [
+  "github.com",
+  "chatgpt.com",
+  "leetcode.com",
+  "hackerrank.com"
+];
 
-  const distractingSites = [
-    "youtube.com",
-    "instagram.com",
-    "facebook.com",
-    "twitter.com"
-  ];
-
-  if (productiveSites.includes(domain)) return "productive";
-  if (distractingSites.includes(domain)) return "distracting";
-  return "neutral";
-}
-
-// -----------------------------
-// Extract domain name
-// -----------------------------
 function getDomain(url) {
   try {
     return new URL(url).hostname.replace("www.", "");
@@ -37,25 +17,32 @@ function getDomain(url) {
   }
 }
 
-// -----------------------------
-// Save time data
-// -----------------------------
+function getCategory(domain) {
+  if (!domain) return "neutral";
+  return PRODUCTIVE_SITES.some((site) => domain.includes(site))
+    ? "productive"
+    : "distracting";
+}
+
 function saveTime(domain, duration) {
-  if (!domain || duration <= 0) return;
-
   const today = new Date().toISOString().split("T")[0];
-  const category = classifySite(domain);
+  const category = getCategory(domain);
 
-  chrome.storage.local.get([today], (result) => {
-    const data = result[today] || {
+  chrome.storage.local.get([today], (res) => {
+    const data = res[today] || {
       totalTime: 0,
       productiveTime: 0,
       distractingTime: 0,
-      neutralTime: 0,
       sites: {}
     };
 
     data.totalTime += duration;
+
+    if (category === "productive") {
+      data.productiveTime += duration;
+    } else if (category === "distracting") {
+      data.distractingTime += duration;
+    }
 
     if (!data.sites[domain]) {
       data.sites[domain] = {
@@ -66,17 +53,10 @@ function saveTime(domain, duration) {
 
     data.sites[domain].time += duration;
 
-    if (category === "productive") data.productiveTime += duration;
-    else if (category === "distracting") data.distractingTime += duration;
-    else data.neutralTime += duration;
-
     chrome.storage.local.set({ [today]: data });
   });
 }
 
-// -----------------------------
-// Handle tab change
-// -----------------------------
 function handleChange(tabId, url) {
   const now = Date.now();
 
@@ -90,18 +70,12 @@ function handleChange(tabId, url) {
   startTime = now;
 }
 
-// -----------------------------
-// Tab activated
-// -----------------------------
 chrome.tabs.onActivated.addListener(({ tabId }) => {
   chrome.tabs.get(tabId, (tab) => {
     if (tab.url) handleChange(tabId, tab.url);
   });
 });
 
-// -----------------------------
-// Tab updated (URL change)
-// -----------------------------
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active && changeInfo.url) {
     handleChange(tabId, changeInfo.url);
