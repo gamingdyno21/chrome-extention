@@ -15,14 +15,14 @@ function DailyView() {
     const yesterdayKey = yesterday.toISOString().split("T")[0];
 
     chrome.storage.local.get([todayKey, yesterdayKey], (res) => {
-      const todayData     = res[todayKey]     || null;
+      const todayData = res[todayKey] || null;
       const yesterdayData = res[yesterdayKey] || null;
 
       if (!todayData) { setHasData(false); return; }
       setHasData(true);
 
       // Trend arrow
-      const todayScore     = (todayData.productiveTime  || 0) - (todayData.distractingTime  || 0);
+      const todayScore = (todayData.productiveTime || 0) - (todayData.distractingTime || 0);
       const yesterdayScore = (yesterdayData?.productiveTime || 0) - (yesterdayData?.distractingTime || 0);
 
       if (!yesterdayData) {

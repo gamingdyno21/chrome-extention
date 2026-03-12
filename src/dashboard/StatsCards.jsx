@@ -8,8 +8,8 @@ import { formatSeconds, getTodayKey } from "../utils/timeTracker";
 const COLORS = ["#00e676", "#ff5252", "#448aff"];
 
 function StatsCards() {
-  const [today, setToday]   = useState({});
-  const [trend, setTrend]   = useState([]);
+  const [today, setToday] = useState({});
+  const [trend, setTrend] = useState([]);
 
   useEffect(() => {
     const todayKey = getTodayKey();
@@ -39,13 +39,13 @@ function StatsCards() {
     return () => clearInterval(interval);
   }, []);
 
-  const productive  = today.productiveTime  || 0;
+  const productive = today.productiveTime || 0;
   const distracting = today.distractingTime || 0;
-  const neutral     = Math.max(0, (today.totalTime || 0) - productive - distracting);
+  const neutral = Math.max(0, (today.totalTime || 0) - productive - distracting);
   const total       = productive + distracting;
 
   const chartData = [
-    { name: "Productive",  value: Math.round(productive  / 60) || 0 },
+    { name: "Productive", value: Math.round(productive / 60) || 0 },
     { name: "Distracting", value: Math.round(distracting / 60) || 0 }
   ].filter((d) => d.value > 0);
 

@@ -3,9 +3,9 @@ import { formatSeconds, getTodayKey } from "../utils/timeTracker";
 import { loadGoals, saveGoals, getDefaultGoals } from "../utils/goals";
 
 function GoalsPanel() {
-  const [goals,   setGoals]   = useState(getDefaultGoals());
-  const [today,   setToday]   = useState({ productiveTime: 0, distractingTime: 0 });
-  const [saved,   setSaved]   = useState(false);
+  const [goals, setGoals] = useState(getDefaultGoals());
+  const [today, setToday] = useState({ productiveTime: 0, distractingTime: 0 });
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const todayKey = getTodayKey();
@@ -23,10 +23,10 @@ function GoalsPanel() {
     });
   }
 
-  const prodPct    = Math.min(100, Math.round((today.productiveTime  / goals.productiveGoal)   * 100));
-  const distPct    = Math.min(100, Math.round((today.distractingTime / goals.distractingLimit) * 100));
-  const prodClass  = prodPct >= 100 ? "good" : prodPct >= 50 ? "warn" : "bad";
-  const distClass  = distPct >= 100 ? "bad"  : distPct >= 70  ? "warn" : "good";
+  const prodPct = Math.min(100, Math.round((today.productiveTime / goals.productiveGoal) * 100));
+  const distPct = Math.min(100, Math.round((today.distractingTime / goals.distractingLimit) * 100));
+  const prodClass = prodPct >= 100 ? "good" : prodPct >= 50 ? "warn" : "bad";
+  const distClass = distPct >= 100 ? "bad" : distPct >= 70 ? "warn" : "good";
 
   return (
     <div className="card">

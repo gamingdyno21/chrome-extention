@@ -6,8 +6,8 @@ import { getRecentKeys, formatSeconds, dayLabel } from "../utils/timeTracker";
 
 function WeeklyView() {
   const [chartData, setChartData] = useState([]);
-  const [topSites,  setTopSites]  = useState({ productive: [], distracting: [] });
-  const [trend,     setTrend]     = useState("neutral");
+  const [topSites, setTopSites] = useState({ productive: [], distracting: [] });
+  const [trend, setTrend] = useState("neutral");
 
   useEffect(() => {
     const thisWeekKeys = getRecentKeys(7);
@@ -19,7 +19,7 @@ function WeeklyView() {
       const prodSites = {};
       const distSites = {};
 
-      // Build bar chart data for this week
+      // build bar chart
       const bars = thisWeekKeys.map((key) => {
         const day = data[key] || {};
         const productive  = Math.round((day.productiveTime  || 0) / 60);
@@ -38,7 +38,7 @@ function WeeklyView() {
         return { day: dayLabel(key), productive, distracting };
       });
 
-      // Last week score for trend
+      // trend score
       lastWeekKeys.forEach((key) => {
         const day = data[key] || {};
         lastScore += (day.productiveTime || 0) - (day.distractingTime || 0);
@@ -103,7 +103,7 @@ function WeeklyView() {
         )}
       </div>
 
-      {/* Top sites this week */}
+      {/* weekly top sites */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="card">
           <h3 style={{ color: "var(--accent)" }}>✅ Top Productive</h3>
