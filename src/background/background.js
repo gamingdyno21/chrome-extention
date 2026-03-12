@@ -356,7 +356,7 @@ function checkGoals() {
         type: "basic",
         iconUrl: "icons/icon128.png",
         title: "Daily Goal Achieved! 🎉",
-        message: `Congratulations! You've hit your daily goal of ${Math.round(goals.productiveGoal / 3600)} hours of productive work.`,
+        message: `Good! You were very productive today and hit your goal of ${Math.round(goals.productiveGoal / 3600)} hours.`,
         priority: 1
       });
       notified.productive = true;
