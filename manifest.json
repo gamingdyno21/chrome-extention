@@ -3,6 +3,9 @@
   "name": "Productivity Tracker",
   "version": "1.1",
   "description": "Track your productive and distracting time across the web.",
+  "icons": {
+    "128": "icons/icon128.png"
+  },
   "permissions": ["tabs", "storage", "idle", "alarms", "webNavigation", "notifications"],
   "host_permissions": ["<all_urls>"],
   "background": {

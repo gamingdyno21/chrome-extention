@@ -11,6 +11,8 @@ export default defineConfig({
       targets: [
         // The compiled background.js (service worker) — placed at dist root
         { src: "src/background/background.js", dest: "." },
+        // Icons
+        { src: "public/icons", dest: "." },
         // Manifest
         { src: "manifest.json", dest: "." }
       ]
