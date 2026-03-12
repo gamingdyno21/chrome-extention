@@ -1,96 +1,153 @@
 import React, { useEffect, useState } from "react";
-
-function calculateWeekTrend(thisWeekScore, lastWeekScore) {
-  // Case 1: Compare if last week exists
-  if (lastWeekScore !== null) {
-    if (thisWeekScore > lastWeekScore) return "up";
-    if (thisWeekScore < lastWeekScore) return "down";
-    return "neutral";
-  }
-
-  // Case 2: No previous week → momentum
-  if (thisWeekScore > 0) return "up";
-  if (thisWeekScore < 0) return "down";
-  return "neutral";
-}
+import {
+  BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, Legend
+} from "recharts";
+import { getRecentKeys, formatSeconds, dayLabel } from "../utils/timeTracker";
 
 function WeeklyView() {
-  const [weekly, setWeekly] = useState({
-    productive: {},
-    distracting: {}
-  });
-  const [trend, setTrend] = useState("neutral");
+  const [chartData, setChartData] = useState([]);
+  const [topSites,  setTopSites]  = useState({ productive: [], distracting: [] });
+  const [trend,     setTrend]     = useState("neutral");
 
   useEffect(() => {
+    const thisWeekKeys = getRecentKeys(7);
+    const lastWeekKeys = getRecentKeys(14).slice(0, 7);
+
     chrome.storage.local.get(null, (data) => {
-      const dates = Object.keys(data).sort();
+      let thisScore = 0;
+      let lastScore = 0;
+      const prodSites = {};
+      const distSites = {};
 
-      const thisWeek = dates.slice(-7);
-      const lastWeek = dates.slice(-14, -7);
+      // Build bar chart data for this week
+      const bars = thisWeekKeys.map((key) => {
+        const day = data[key] || {};
+        const productive  = Math.round((day.productiveTime  || 0) / 60);
+        const distracting = Math.round((day.distractingTime || 0) / 60);
+        thisScore += (day.productiveTime || 0) - (day.distractingTime || 0);
 
-      let thisScore = 0,
-        lastScore = 0;
-
-      const productive = {};
-      const distracting = {};
-
-      thisWeek.forEach((d) => {
-        const day = data[d] || {};
-        thisScore +=
-          (day.productiveTime || 0) -
-          (day.distractingTime || 0);
-
+        // Aggregate top sites — fix: use info.category (was info.productivity)
         Object.entries(day.sites || {}).forEach(([site, info]) => {
           if (info.category === "productive") {
-            productive[site] =
-              (productive[site] || 0) + info.time;
+            prodSites[site] = (prodSites[site] || 0) + info.time;
           } else if (info.category === "distracting") {
-            distracting[site] =
-              (distracting[site] || 0) + info.time;
+            distSites[site] = (distSites[site] || 0) + info.time;
           }
         });
+
+        return { day: dayLabel(key), productive, distracting };
       });
 
-      lastWeek.forEach((d) => {
-        const day = data[d] || {};
-        lastScore +=
-          (day.productiveTime || 0) -
-          (day.distractingTime || 0);
+      // Last week score for trend
+      lastWeekKeys.forEach((key) => {
+        const day = data[key] || {};
+        lastScore += (day.productiveTime || 0) - (day.distractingTime || 0);
       });
 
-      const trendValue = calculateWeekTrend(thisScore, lastWeek.length ? lastScore : null);
-      setTrend(trendValue);
+      if (lastScore === 0) {
+        setTrend(thisScore > 0 ? "up" : thisScore < 0 ? "down" : "neutral");
+      } else {
+        setTrend(thisScore > lastScore ? "up" : thisScore < lastScore ? "down" : "neutral");
+      }
 
-      setWeekly({ productive, distracting });
+      setChartData(bars);
+      setTopSites({
+        productive:  Object.entries(prodSites).sort((a, b) => b[1] - a[1]).slice(0, 5),
+        distracting: Object.entries(distSites).sort((a, b) => b[1] - a[1]).slice(0, 5)
+      });
     });
   }, []);
 
-  const render = (sites, color) =>
-    Object.entries(sites)
-      .sort((a, b) => b[1] - a[1])
-      .map(([site, time]) => (
-        <div key={site} className={`stat-row ${color}`}>
-          <span>{site}</span>
-          <span>{Math.floor(time / 60)} min</span>
-        </div>
-      ));
+  const maxTime = Math.max(...chartData.map((d) => d.productive + d.distracting), 1);
+
+  const customTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12 }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+        {payload.map((p) => (
+          <div key={p.dataKey} style={{ color: p.fill }}>
+            {p.name}: {p.value}m
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="card">
-      <h3>
-        Last 7 Days{" "}
-        {trend === "up" && <span className="green">▲</span>}
-        {trend === "down" && <span className="red">▼</span>}
-      </h3>
+    <>
+      {/* Weekly Bar Chart */}
+      <div className="card">
+        <h3>
+          📆 Last 7 Days
+          {trend === "up"   && <span className="green" style={{ fontSize: 14 }}> ▲ Better than last week</span>}
+          {trend === "down" && <span className="red"   style={{ fontSize: 14 }}> ▼ Worse than last week</span>}
+        </h3>
 
-      <p className="green">Productive Websites</p>
-      {render(weekly.productive, "green")}
+        {chartData.every((d) => d.productive === 0 && d.distracting === 0) ? (
+          <div className="empty-state">
+            <div className="icon">📡</div>
+            <p>No weekly data yet</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220} minWidth={200} minHeight={150} initialDimension={{ width: 400, height: 220 }}>
+            <BarChart data={chartData} barGap={4}>
+              <XAxis dataKey="day" tick={{ fill: "var(--text-sub)", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "var(--text-sub)", fontSize: 11 }} axisLine={false} tickLine={false} unit="m" />
+              <Tooltip content={customTooltip} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+              <Legend wrapperStyle={{ fontSize: 12, color: "var(--text-sub)" }} />
+              <Bar dataKey="productive"  name="Productive"  fill="#00e676" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="distracting" name="Distracting" fill="#ff5252" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
 
-      <p className="red" style={{ marginTop: 10 }}>
-        Distracting Websites
-      </p>
-      {render(weekly.distracting, "red")}
-    </div>
+      {/* Top sites this week */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="card">
+          <h3 style={{ color: "var(--accent)" }}>✅ Top Productive</h3>
+          {topSites.productive.length === 0
+            ? <p className="muted">No data</p>
+            : topSites.productive.map(([site, time]) => {
+                const maxT = topSites.productive[0]?.[1] || 1;
+                return (
+                  <div key={site} className="stat-row">
+                    <span className="site-name">{site}</span>
+                    <div className="time-bar-wrap">
+                      <div className="bar-track">
+                        <div className="bar-fill productive" style={{ width: `${Math.round((time / maxT) * 100)}%` }} />
+                      </div>
+                      <span className="time-val">{formatSeconds(time)}</span>
+                    </div>
+                  </div>
+                );
+              })
+          }
+        </div>
+
+        <div className="card">
+          <h3 style={{ color: "var(--danger)" }}>⛔ Top Distracting</h3>
+          {topSites.distracting.length === 0
+            ? <p className="muted">No data</p>
+            : topSites.distracting.map(([site, time]) => {
+                const maxT = topSites.distracting[0]?.[1] || 1;
+                return (
+                  <div key={site} className="stat-row">
+                    <span className="site-name">{site}</span>
+                    <div className="time-bar-wrap">
+                      <div className="bar-track">
+                        <div className="bar-fill distracting" style={{ width: `${Math.round((time / maxT) * 100)}%` }} />
+                      </div>
+                      <span className="time-val">{formatSeconds(time)}</span>
+                    </div>
+                  </div>
+                );
+              })
+          }
+        </div>
+      </div>
+    </>
   );
 }
 

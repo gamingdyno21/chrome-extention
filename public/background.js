@@ -1,15 +1,16 @@
-let activeTabId = null;
-let activeDomain = null;
+let currentDomain = null;
 let startTime = null;
 
-const PRODUCTIVE_SITES = [
-  "github.com",
-  "chatgpt.com",
-  "leetcode.com",
-  "hackerrank.com"
-];
+const DEFAULT_CATEGORIES = {
+  productive: ["leetcode.com", "github.com", "chat.openai.com"],
+  distracting: ["youtube.com", "instagram.com", "facebook.com"],
+  custom: {}
+};
 
 function getDomain(url) {
+  if (!url) return null;
+  if (url.startsWith("chrome://") || url.startsWith("edge://")) return null;
+
   try {
     return new URL(url).hostname.replace("www.", "");
   } catch {
@@ -17,67 +18,71 @@ function getDomain(url) {
   }
 }
 
-function getCategory(domain) {
+function getCategory(domain, categories) {
   if (!domain) return "neutral";
-  return PRODUCTIVE_SITES.some((site) => domain.includes(site))
-    ? "productive"
-    : "distracting";
+
+  if (categories.productive.includes(domain)) return "productive";
+  if (categories.distracting.includes(domain)) return "distracting";
+  if (categories.custom && categories.custom[domain]) return categories.custom[domain];
+
+  return "neutral";
 }
 
-function saveTime(domain, duration) {
-  const today = new Date().toISOString().split("T")[0];
-  const category = getCategory(domain);
+function storeTime(domain, seconds) {
+  if (!domain || seconds <= 0) return;
 
-  chrome.storage.local.get([today], (res) => {
-    const data = res[today] || {
-      totalTime: 0,
-      productiveTime: 0,
-      distractingTime: 0,
-      sites: {}
-    };
+  chrome.storage.local.get(["timeData", "categories"], (res) => {
+    const data = res.timeData || {};
+    const categories = res.categories || DEFAULT_CATEGORIES;
 
-    data.totalTime += duration;
+    const category = getCategory(domain, categories);
 
-    if (category === "productive") {
-      data.productiveTime += duration;
-    } else if (category === "distracting") {
-      data.distractingTime += duration;
+    if (!data[domain]) {
+      data[domain] = { time: 0, category };
     }
 
-    if (!data.sites[domain]) {
-      data.sites[domain] = {
-        time: 0,
-        category
-      };
-    }
+    data[domain].time += seconds;
+    data[domain].category = category;
 
-    data.sites[domain].time += duration;
-
-    chrome.storage.local.set({ [today]: data });
+    chrome.storage.local.set({
+      timeData: data,
+      categories: categories
+    });
   });
 }
 
-function handleChange(tabId, url) {
+function handleSwitch(newUrl) {
   const now = Date.now();
 
-  if (activeDomain && startTime) {
-    const duration = Math.floor((now - startTime) / 1000);
-    saveTime(activeDomain, duration);
+  if (currentDomain && startTime) {
+    const seconds = Math.floor((now - startTime) / 1000);
+    storeTime(currentDomain, seconds);
   }
 
-  activeTabId = tabId;
-  activeDomain = getDomain(url);
-  startTime = now;
+  currentDomain = getDomain(newUrl);
+  startTime = Date.now();
 }
 
-chrome.tabs.onActivated.addListener(({ tabId }) => {
-  chrome.tabs.get(tabId, (tab) => {
-    if (tab.url) handleChange(tabId, tab.url);
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  chrome.tabs.get(activeInfo.tabId, (tab) => {
+    if (!tab || !tab.url) return;
+    handleSwitch(tab.url);
   });
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.active && changeInfo.url) {
-    handleChange(tabId, changeInfo.url);
+  if (changeInfo.status === "complete" && tab.active) {
+    if (!tab.url) return;
+    handleSwitch(tab.url);
   }
+});
+
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0] && tabs[0].url) {
+      handleSwitch(tabs[0].url);
+    }
+  });
 });

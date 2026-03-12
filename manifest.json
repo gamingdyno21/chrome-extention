@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Productivity Tracker",
+  "version": "1.1",
+  "description": "Track your productive and distracting time across the web.",
+  "permissions": ["tabs", "storage", "idle", "alarms", "webNavigation"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Productivity Tracker"
+  }
+}

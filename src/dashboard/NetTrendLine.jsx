@@ -20,7 +20,7 @@ function NetTrendLine() {
   }, []);
 
   if (points.length === 0) {
-    return <p className="muted">No trend data yet</p>;
+    return <p className="muted">No trend data</p>;
   }
 
   const max = Math.max(...points, 1);
@@ -30,6 +30,10 @@ function NetTrendLine() {
   const width = 320;
   const height = 100;
   const padding = 10;
+
+  const baselineY =
+    padding +
+    (max / range) * (height - padding * 2);
 
   const path = points
     .map((val, i) => {
@@ -52,22 +56,14 @@ function NetTrendLine() {
       {/* baseline */}
       <line
         x1="0"
-        y1={
-          padding +
-          (max / range) *
-            (height - padding * 2)
-        }
+        y1={baselineY}
         x2={width}
-        y2={
-          padding +
-          (max / range) *
-            (height - padding * 2)
-        }
+        y2={baselineY}
         stroke="#333"
         strokeDasharray="4"
       />
 
-      {/* trend line */}
+      {/* net P/L line */}
       <path
         d={path}
         fill="none"

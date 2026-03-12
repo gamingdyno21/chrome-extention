@@ -1,0 +1,227 @@
+/* ── Google Font ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import '../styles/theme.css';
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  width: 340px;
+  min-height: 480px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.popup-header .logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.popup-header .logo span { color: var(--accent); }
+
+.theme-btn {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-sub);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 3px 10px;
+  transition: background var(--ease);
+}
+.theme-btn:hover { background: var(--card-hover); }
+
+/* ── Summary Row ─────────────────────────────────────────────────────────── */
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px 16px 8px;
+}
+
+.stat-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  transition: background var(--ease);
+}
+
+.stat-box .label {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-box .value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stat-box.productive .value { color: var(--accent); }
+.stat-box.distracting .value { color: var(--danger); }
+
+/* ── Goal Progress ───────────────────────────────────────────────────────── */
+.goal-section {
+  padding: 0 16px 10px;
+}
+
+.goal-section .goal-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-sub);
+  margin-bottom: 5px;
+}
+
+.progress-track {
+  height: 5px;
+  background: var(--glass);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-fill.good { background: var(--accent); }
+.progress-fill.warn { background: var(--warn); }
+.progress-fill.bad  { background: var(--danger); }
+
+/* ── Current Site ────────────────────────────────────────────────────────── */
+.current-site {
+  margin: 4px 16px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.current-site .section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+
+.site-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-domain {
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  letter-spacing: 0.03em;
+}
+
+.badge.productive  { background: var(--accent-dim);  color: var(--accent); }
+.badge.distracting { background: var(--danger-dim);  color: var(--danger); }
+.badge.neutral     { background: var(--blue-dim);    color: var(--blue);   }
+
+/* ── Category Actions ────────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.cat-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
+  font-family: inherit;
+}
+
+.cat-btn:hover { background: var(--card-hover); color: var(--text); }
+
+.cat-btn.active.productive {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cat-btn.active.distracting {
+  background: var(--danger-dim);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.cat-btn.active.neutral {
+  background: var(--blue-dim);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+/* ── Dashboard Button ────────────────────────────────────────────────────── */
+.dashboard-btn {
+  display: block;
+  margin: 0 16px 14px;
+  width: calc(100% - 32px);
+  padding: 10px;
+  background: linear-gradient(135deg, #00e676, #00b894);
+  color: #000;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity var(--ease), transform var(--ease);
+  box-shadow: 0 4px 16px #00e67640;
+}
+.dashboard-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.dashboard-btn:active { transform: translateY(0); }
+
+.no-site {
+  color: var(--text-sub);
+  font-style: italic;
+  font-size: 12px;
+}

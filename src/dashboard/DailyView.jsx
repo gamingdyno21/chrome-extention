@@ -1,84 +1,81 @@
 import React, { useEffect, useState } from "react";
-
-function calculateDailyTrend(today, yesterday) {
-  const todayScore =
-    (today?.productiveTime || 0) -
-    (today?.distractingTime || 0);
-
-  // Case 1: Yesterday exists → compare (classic)
-  if (yesterday) {
-    const yesterdayScore =
-      (yesterday.productiveTime || 0) -
-      (yesterday.distractingTime || 0);
-
-    if (todayScore > yesterdayScore) return "up";
-    if (todayScore < yesterdayScore) return "down";
-    return "neutral";
-  }
-
-  // Case 2: No yesterday → direction-only (important!)
-  if (todayScore > 0) return "up";
-  if (todayScore < 0) return "down";
-  return "neutral";
-}
+import { formatSeconds, getTodayKey } from "../utils/timeTracker";
 
 function DailyView() {
-  const [data, setData] = useState(null);
-  const [trend, setTrend] = useState("neutral");
+  const [sites, setSites]   = useState([]);
+  const [trend, setTrend]   = useState("neutral");
+  const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
     const today = new Date();
-    const todayKey = today.toISOString().split("T")[0];
+    const todayKey = getTodayKey();
+
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
     const yesterdayKey = yesterday.toISOString().split("T")[0];
 
     chrome.storage.local.get([todayKey, yesterdayKey], (res) => {
-      const todayData = res[todayKey];
-      const yesterdayData = res[yesterdayKey];
+      const todayData     = res[todayKey]     || null;
+      const yesterdayData = res[yesterdayKey] || null;
 
-      const trendValue = calculateDailyTrend(todayData, yesterdayData);
-      setTrend(trendValue);
+      if (!todayData) { setHasData(false); return; }
+      setHasData(true);
 
-      setData(todayData);
+      // Trend arrow
+      const todayScore     = (todayData.productiveTime  || 0) - (todayData.distractingTime  || 0);
+      const yesterdayScore = (yesterdayData?.productiveTime || 0) - (yesterdayData?.distractingTime || 0);
+
+      if (!yesterdayData) {
+        setTrend(todayScore > 0 ? "up" : todayScore < 0 ? "down" : "neutral");
+      } else {
+        setTrend(todayScore > yesterdayScore ? "up" : todayScore < yesterdayScore ? "down" : "neutral");
+      }
+
+      // Sort sites by time desc
+      const sorted = Object.entries(todayData.sites || {})
+        .map(([domain, info]) => ({ domain, time: info.time, category: info.category }))
+        .sort((a, b) => b.time - a.time);
+
+      setSites(sorted);
     });
   }, []);
 
-  if (!data) {
-    return (
-      <div className="card">
-        <h3>Today</h3>
-        <p className="muted">No activity yet</p>
-      </div>
-    );
-  }
-
-  const sites = Object.entries(data.sites || {}).sort(
-    (a, b) => b[1].time - a[1].time
-  );
+  const maxTime = sites[0]?.time || 1;
 
   return (
     <div className="card">
       <h3>
-        Today{" "}
-        {trend === "up" && <span className="green">▲</span>}
-        {trend === "down" && <span className="red">▼</span>}
+        📅 Today
+        {trend === "up"   && <span className="green" style={{ fontSize: 14 }}> ▲ Better than yesterday</span>}
+        {trend === "down" && <span className="red"   style={{ fontSize: 14 }}> ▼ Worse than yesterday</span>}
       </h3>
 
-      {sites.map(([site, info]) => (
-        <div key={site} className="stat-row">
-          <span>
-            {site}{" "}
-            {info.category === "productive" && (
-              <span className="green">●</span>
-            )}
-            {info.category === "distracting" && (
-              <span className="red">●</span>
-            )}
-          </span>
-          <span>{Math.floor(info.time / 60)} min</span>
+      {!hasData ? (
+        <div className="empty-state">
+          <div className="icon">⏳</div>
+          <p>No data yet — browse a few sites first</p>
         </div>
-      ))}
+      ) : sites.length === 0 ? (
+        <p className="muted">No site data recorded today</p>
+      ) : (
+        sites.map(({ domain, time, category }) => (
+          <div key={domain} className="stat-row">
+            <div className="site-info">
+              <span className="site-name">{domain}</span>
+              <span className={`badge ${category}`}>{category}</span>
+            </div>
+            <div className="time-bar-wrap">
+              <div className="bar-track">
+                <div
+                  className={`bar-fill ${category}`}
+                  style={{ width: `${Math.round((time / maxTime) * 100)}%` }}
+                />
+              </div>
+              <span className="time-val">{formatSeconds(time)}</span>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
