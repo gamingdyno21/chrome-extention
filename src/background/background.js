@@ -239,15 +239,18 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 function pulse(callback) {
   const now = Date.now();
+  console.log("[Background] Pulse triggered at", new Date().toLocaleTimeString());
   
   // Check if browser is actually in use
   chrome.windows.getLastFocused({ populate: true }, (window) => {
     const isFocused = window && window.focused;
+    console.log("[Background] Window focused:", isFocused);
 
     if (!isFocused) {
       // Browser not focused. Check if something is playing audio (e.g. YouTube in bg)
       chrome.tabs.query({ audible: true }, (tabs) => {
         const audibleTab = tabs.find(t => getDomain(t.url));
+        console.log("[Background] Audible tab found:", !!audibleTab);
         
         if (audibleTab) {
           const domain = getDomain(audibleTab.url);
@@ -323,10 +326,15 @@ const DEFAULT_GOALS = { productiveGoal: 10800, distractingLimit: 3600 };
 
 function checkGoals() {
   const todayKey = getTodayKey();
+  console.log("[Background] Checking goals for", todayKey);
   chrome.storage.local.get(["goals", todayKey, "notifiedToday"], (res) => {
     const goals = res.goals || DEFAULT_GOALS;
     const dayData = res[todayKey] || { productiveTime: 0, distractingTime: 0 };
     const notified = res.notifiedToday || { date: "", productive: false, distracting: false };
+
+    console.log("[Background] Current stats - Productive:", dayData.productiveTime, "Distracting:", dayData.distractingTime);
+    console.log("[Background] Current goals - Productive:", goals.productiveGoal, "Distracting:", goals.distractingLimit);
+    console.log("[Background] Already notified today:", JSON.stringify(notified));
 
     // Reset notifications if it's a new day
     if (notified.date !== todayKey) {
@@ -339,6 +347,7 @@ function checkGoals() {
 
     // Check Distraction Limit
     if (dayData.distractingTime >= goals.distractingLimit && !notified.distracting) {
+      console.log("[Background] Distraction limit reached! Sending notification...");
       chrome.notifications.create({
         type: "basic",
         iconUrl: "icons/icon128.png",
@@ -352,6 +361,7 @@ function checkGoals() {
 
     // Check Productive Goal
     if (dayData.productiveTime >= goals.productiveGoal && !notified.productive) {
+      console.log("[Background] Productive goal reached! Sending notification...");
       chrome.notifications.create({
         type: "basic",
         iconUrl: "icons/icon128.png",
