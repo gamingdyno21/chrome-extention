@@ -1,7 +1,7 @@
 export function getDefaultGoals() {
   return {
-    productiveGoal: 180,   // 3 hours
-    distractingLimit: 60  // 1 hour
+    productiveGoal: 10800,  // 3 hours
+    distractingLimit: 3600  // 1 hour
   };
 }
 

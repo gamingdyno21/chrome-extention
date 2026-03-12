@@ -246,10 +246,62 @@ function pulse(callback) {
       storeTime(currentDomain, seconds, () => {
         // Reset start time to now so we only track the increment next time
         setTrackingState({ currentDomain, startTime: now });
+        checkGoals();
         if (callback) callback();
       });
-    } else if (callback) {
-      callback();
+    } else {
+      checkGoals();
+      if (callback) callback();
+    }
+  });
+}
+
+const DEFAULT_GOALS = { productiveGoal: 10800, distractingLimit: 3600 };
+
+function checkGoals() {
+  const todayKey = getTodayKey();
+  chrome.storage.local.get(["goals", todayKey, "notifiedToday"], (res) => {
+    const goals = res.goals || DEFAULT_GOALS;
+    const dayData = res[todayKey] || { productiveTime: 0, distractingTime: 0 };
+    const notified = res.notifiedToday || { date: "", productive: false, distracting: false };
+
+    // Reset notifications if it's a new day
+    if (notified.date !== todayKey) {
+      notified.date = todayKey;
+      notified.productive = false;
+      notified.distracting = false;
+    }
+
+    let updated = false;
+
+    // Check Distraction Limit
+    if (dayData.distractingTime >= goals.distractingLimit && !notified.distracting) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "Distraction Limit Reached!",
+        message: `You've spent over ${Math.round(goals.distractingLimit / 60)} minutes on distracting sites today. Time to get back to work!`,
+        priority: 2
+      });
+      notified.distracting = true;
+      updated = true;
+    }
+
+    // Check Productive Goal
+    if (dayData.productiveTime >= goals.productiveGoal && !notified.productive) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "Daily Goal Achieved! 🎉",
+        message: `Congratulations! You've hit your daily goal of ${Math.round(goals.productiveGoal / 3600)} hours of productive work.`,
+        priority: 1
+      });
+      notified.productive = true;
+      updated = true;
+    }
+
+    if (updated) {
+      chrome.storage.local.set({ notifiedToday: notified });
     }
   });
 }
