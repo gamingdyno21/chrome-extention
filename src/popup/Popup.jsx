@@ -7,17 +7,17 @@ function openDashboard() {
 }
 
 export default function Popup() {
-  const [domain,   setDomain]   = useState("");
+  const [domain, setDomain] = useState("");
   const [category, setCategory] = useState("neutral");
   const [todayStats, setTodayStats] = useState({ productive: 0, distracting: 0 });
-  const [goals,    setGoals]    = useState({ productiveGoal: 10800, distractingLimit: 3600 });
-  const [theme,    setTheme]    = useState("dark");
+  const [goals, setGoals] = useState({ productiveGoal: 10800, distractingLimit: 3600 });
+  const [theme, setTheme] = useState("dark");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // Load data and set up refresh
+  // data loading
   useEffect(() => {
     const loadData = () => {
       const todayKey = new Date().toISOString().split("T")[0];
@@ -47,12 +47,12 @@ export default function Popup() {
       });
     };
 
-    // First, flush the background time so storage is up to date
+    // flush time from bg
     chrome.runtime.sendMessage({ type: "FLUSH_TIME" }, () => {
       loadData();
     });
 
-    // Refresh every 5 seconds while open
+    // 5s refresh
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, []);

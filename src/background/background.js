@@ -1,4 +1,4 @@
-// ─── Productivity Tracker – Background Service Worker (V3 Persistent) ──────────
+// Productivity Tracker Background Service Worker
 // Data model (stored per day):
 //   storage["2024-01-15"] = {
 //     productiveTime: <seconds>,
@@ -22,7 +22,7 @@ const DEFAULT_CATEGORIES = {
   custom: {}
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 function getTodayKey() {
   return new Date().toISOString().split("T")[0];
@@ -49,7 +49,7 @@ function getCategory(domain, categories) {
   return "neutral";
 }
 
-// ── State Persistence ─────────────────────────────────────────────────────────
+// State Persistence
 
 let isIdle = false;
 
@@ -63,7 +63,7 @@ function setTrackingState(state) {
   chrome.storage.local.set({ trackingState: state });
 }
 
-// ── Storage ───────────────────────────────────────────────────────────────────
+// Storage processing
 
 const storageQueue = [];
 let isProcessingQueue = false;
@@ -119,7 +119,7 @@ function storeTime(domain, seconds, callback) {
   processQueue();
 }
 
-// ── Tab / Window tracking ─────────────────────────────────────────────────────
+// Tab tracking
 
 function handleSwitch(newUrl) {
   if (isIdle) return;
@@ -197,7 +197,7 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
   });
 });
 
-// ── Idle detection ─────────────────────────────────────────────────────────────
+// Idle detection
 // Watch videos for up to 15 mins without mouse movement
 chrome.idle.setDetectionInterval(900); 
 
@@ -227,7 +227,7 @@ chrome.idle.onStateChanged.addListener((state) => {
   }
 });
 
-// ── Heartbeat & Pulse ──────────────────────────────────────────────────────────
+// Pulse heartbeat
 
 chrome.alarms.create("heartbeat", { periodInMinutes: 1 });
 
@@ -254,7 +254,7 @@ function pulse(callback) {
   });
 }
 
-// ── Message Listener ───────────────────────────────────────────────────────────
+// Listeners
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "FLUSH_TIME") {

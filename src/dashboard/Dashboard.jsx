@@ -13,7 +13,7 @@ const TABS = [
 ];
 
 function Dashboard() {
-  const [tab,   setTab]   = useState("today");
+  const [tab, setTab] = useState("today");
   const [theme, setTheme] = useState("dark");
 
   useEffect(() => {
@@ -21,7 +21,7 @@ function Dashboard() {
   }, [theme]);
 
   useEffect(() => {
-    // Flush current tracking data so stats are up-to-date
+    // flush current tracking
     chrome.runtime.sendMessage({ type: "FLUSH_TIME" }, () => {
       // We don't necessarily need to wait, but it ensures storage is updated
     });
@@ -29,7 +29,7 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      {/* Sticky topbar */}
+      {/* topbar */}
       <div className="topbar">
         <div className="topbar-logo">
           <span>⏱</span>
@@ -42,7 +42,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Tab navigation */}
+      {/* navigation */}
       <div className="tab-nav">
         {TABS.map(({ id, label }) => (
           <button
@@ -55,7 +55,7 @@ function Dashboard() {
         ))}
       </div>
 
-      {/* Tab content */}
+      {/* content */}
       <div className="tab-content">
         {tab === "today" && (
           <>
