@@ -41,7 +41,6 @@ function StatsCards() {
 
   const productive = today.productiveTime || 0;
   const distracting = today.distractingTime || 0;
-  const neutral = Math.max(0, (today.totalTime || 0) - productive - distracting);
   const total       = productive + distracting;
 
   const chartData = [

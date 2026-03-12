@@ -26,12 +26,17 @@ function WeeklyView() {
         const distracting = Math.round((day.distractingTime || 0) / 60);
         thisScore += (day.productiveTime || 0) - (day.distractingTime || 0);
 
-        // Aggregate top sites — fix: use info.category (was info.productivity)
+        // Aggregate top sites using new breakdown logic
         Object.entries(day.sites || {}).forEach(([site, info]) => {
-          if (info.category === "productive") {
-            prodSites[site] = (prodSites[site] || 0) + info.time;
-          } else if (info.category === "distracting") {
-            distSites[site] = (distSites[site] || 0) + info.time;
+          if (info.breakdown) {
+            Object.entries(info.breakdown).forEach(([cat, time]) => {
+              if (cat === "productive") prodSites[site] = (prodSites[site] || 0) + time;
+              else if (cat === "distracting") distSites[site] = (distSites[site] || 0) + time;
+            });
+          } else {
+            // Legacy fallback
+            if (info.category === "productive") prodSites[site] = (prodSites[site] || 0) + info.time;
+            else if (info.category === "distracting") distSites[site] = (distSites[site] || 0) + info.time;
           }
         });
 

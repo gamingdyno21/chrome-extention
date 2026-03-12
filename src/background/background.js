@@ -80,16 +80,35 @@ function processQueue() {
     const category   = getCategory(domain, categories);
 
     const timeData = res.timeData || {};
-    if (!timeData[domain]) timeData[domain] = { time: 0, category };
+    if (!timeData[domain]) {
+      timeData[domain] = { time: 0, category, breakdown: { productive: 0, distracting: 0, neutral: 0 } };
+    }
+    
+    // Migration/Init for breakdown
+    if (!timeData[domain].breakdown) {
+      const oldCat = timeData[domain].category || "neutral";
+      timeData[domain].breakdown = { productive: 0, distracting: 0, neutral: 0 };
+      timeData[domain].breakdown[oldCat] = timeData[domain].time || 0;
+    }
+
     timeData[domain].time += seconds;
     timeData[domain].category = category;
+    timeData[domain].breakdown[category] = (timeData[domain].breakdown[category] || 0) + seconds;
 
     const dayData = res[todayKey] || { productiveTime: 0, distractingTime: 0, sites: {} };
     if (!dayData.sites[domain]) {
-      dayData.sites[domain] = { time: 0, category };
+      dayData.sites[domain] = { time: 0, category, breakdown: { productive: 0, distracting: 0, neutral: 0 } };
     }
+
+    if (!dayData.sites[domain].breakdown) {
+      const oldCat = dayData.sites[domain].category || "neutral";
+      dayData.sites[domain].breakdown = { productive: 0, distracting: 0, neutral: 0 };
+      dayData.sites[domain].breakdown[oldCat] = dayData.sites[domain].time || 0;
+    }
+
     dayData.sites[domain].time += seconds;
     dayData.sites[domain].category = category;
+    dayData.sites[domain].breakdown[category] = (dayData.sites[domain].breakdown[category] || 0) + seconds;
 
     if (category === "productive") {
       dayData.productiveTime = (dayData.productiveTime || 0) + seconds;
@@ -102,7 +121,6 @@ function processQueue() {
       categories,
       [todayKey]: dayData
     }, () => {
-      console.log(`[Background] Stored ${seconds}s for ${domain} (${category}). Total today: P:${dayData.productiveTime}s, D:${dayData.distractingTime}s`);
       isProcessingQueue = false;
       if (callback) callback();
       processQueue();
@@ -239,18 +257,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 function pulse(callback) {
   const now = Date.now();
-  console.log("[Background] Pulse triggered at", new Date().toLocaleTimeString());
   
   // Check if browser is actually in use
   chrome.windows.getLastFocused({ populate: true }, (window) => {
     const isFocused = window && window.focused;
-    console.log("[Background] Window focused:", isFocused);
 
     if (!isFocused) {
       // Browser not focused. Check if something is playing audio (e.g. YouTube in bg)
       chrome.tabs.query({ audible: true }, (tabs) => {
         const audibleTab = tabs.find(t => getDomain(t.url));
-        console.log("[Background] Audible tab found:", !!audibleTab);
         
         if (audibleTab) {
           const domain = getDomain(audibleTab.url);
@@ -326,15 +341,10 @@ const DEFAULT_GOALS = { productiveGoal: 10800, distractingLimit: 3600 };
 
 function checkGoals() {
   const todayKey = getTodayKey();
-  console.log("[Background] Checking goals for", todayKey);
   chrome.storage.local.get(["goals", todayKey, "notifiedToday"], (res) => {
     const goals = res.goals || DEFAULT_GOALS;
     const dayData = res[todayKey] || { productiveTime: 0, distractingTime: 0 };
     const notified = res.notifiedToday || { date: "", productive: false, distracting: false };
-
-    console.log("[Background] Current stats - Productive:", dayData.productiveTime, "Distracting:", dayData.distractingTime);
-    console.log("[Background] Current goals - Productive:", goals.productiveGoal, "Distracting:", goals.distractingLimit);
-    console.log("[Background] Already notified today:", JSON.stringify(notified));
 
     // Reset notifications if it's a new day
     if (notified.date !== todayKey) {
@@ -347,13 +357,13 @@ function checkGoals() {
 
     // Check Distraction Limit
     if (dayData.distractingTime >= goals.distractingLimit && !notified.distracting) {
-      console.log("[Background] Distraction limit reached! Sending notification...");
       chrome.notifications.create({
         type: "basic",
-        iconUrl: "icons/icon128.png",
+        iconUrl: chrome.runtime.getURL("icons/icon128.png"),
         title: "Distraction Limit Reached!",
         message: `You've spent over ${Math.round(goals.distractingLimit / 60)} minutes on distracting sites today. Time to get back to work!`,
-        priority: 2
+        priority: 2,
+        requireInteraction: true
       });
       notified.distracting = true;
       updated = true;
@@ -361,13 +371,13 @@ function checkGoals() {
 
     // Check Productive Goal
     if (dayData.productiveTime >= goals.productiveGoal && !notified.productive) {
-      console.log("[Background] Productive goal reached! Sending notification...");
       chrome.notifications.create({
         type: "basic",
-        iconUrl: "icons/icon128.png",
+        iconUrl: chrome.runtime.getURL("icons/icon128.png"),
         title: "Daily Goal Achieved! 🎉",
         message: `Good! You were very productive today and hit your goal of ${Math.round(goals.productiveGoal / 3600)} hours.`,
-        priority: 1
+        priority: 1,
+        requireInteraction: true
       });
       notified.productive = true;
       updated = true;

@@ -31,11 +31,34 @@ function DailyView() {
         setTrend(todayScore > yesterdayScore ? "up" : todayScore < yesterdayScore ? "down" : "neutral");
       }
 
-      // Sort sites by time desc
-      const sorted = Object.entries(todayData.sites || {})
-        .map(([domain, info]) => ({ domain, time: info.time, category: info.category }))
-        .sort((a, b) => b.time - a.time);
+      // Process sites into split entries based on breakdown
+      const displaySites = [];
+      Object.entries(todayData.sites || {}).forEach(([domain, info]) => {
+        if (info.breakdown) {
+          Object.entries(info.breakdown).forEach(([cat, time]) => {
+            if (time > 0) {
+              displaySites.push({ 
+                id: `${domain}-${cat}`, 
+                domain: domain, 
+                displayDomain: domain + (cat !== "neutral" ? ` (${cat})` : ""),
+                time, 
+                category: cat 
+              });
+            }
+          });
+        } else {
+          // Fallback for legacy data
+          displaySites.push({ 
+            id: domain, 
+            domain, 
+            displayDomain: domain,
+            time: info.time, 
+            category: info.category 
+          });
+        }
+      });
 
+      const sorted = displaySites.sort((a, b) => b.time - a.time);
       setSites(sorted);
     });
   }, []);
@@ -58,10 +81,10 @@ function DailyView() {
       ) : sites.length === 0 ? (
         <p className="muted">No site data recorded today</p>
       ) : (
-        sites.map(({ domain, time, category }) => (
-          <div key={domain} className="stat-row">
+        sites.map(({ id, domain, displayDomain, time, category }) => (
+          <div key={id} className="stat-row">
             <div className="site-info">
-              <span className="site-name">{domain}</span>
+              <span className="site-name">{displayDomain}</span>
               <span className={`badge ${category}`}>{category}</span>
             </div>
             <div className="time-bar-wrap">
