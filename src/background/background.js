@@ -239,20 +239,83 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 function pulse(callback) {
   const now = Date.now();
-  getTrackingState((state) => {
-    const { currentDomain, startTime } = state;
-    if (currentDomain && startTime) {
-      const seconds = Math.floor((now - startTime) / 1000);
-      storeTime(currentDomain, seconds, () => {
-        // Reset start time to now so we only track the increment next time
-        setTrackingState({ currentDomain, startTime: now });
+  
+  // Check if browser is actually in use
+  chrome.windows.getLastFocused({ populate: true }, (window) => {
+    const isFocused = window && window.focused;
+
+    if (!isFocused) {
+      // Browser not focused. Check if something is playing audio (e.g. YouTube in bg)
+      chrome.tabs.query({ audible: true }, (tabs) => {
+        const audibleTab = tabs.find(t => getDomain(t.url));
+        
+        if (audibleTab) {
+          const domain = getDomain(audibleTab.url);
+          getTrackingState((state) => {
+            const { currentDomain, startTime } = state;
+            
+            // If we were already tracking this audible domain
+            if (domain === currentDomain && startTime) {
+              const seconds = Math.floor((now - startTime) / 1000);
+              storeTime(domain, seconds, () => {
+                setTrackingState({ currentDomain: domain, startTime: now });
+                checkGoals();
+                if (callback) callback();
+              });
+            } else {
+              // Switched to background audio or just started
+              if (currentDomain && startTime) {
+                storeTime(currentDomain, Math.floor((now - startTime) / 1000));
+              }
+              setTrackingState({ currentDomain: domain, startTime: now });
+              checkGoals();
+              if (callback) callback();
+            }
+          });
+        } else {
+          // No focus, no audio -> Stop tracking
+          getTrackingState((state) => {
+            const { currentDomain, startTime } = state;
+            if (currentDomain && startTime) {
+              storeTime(currentDomain, Math.floor((now - startTime) / 1000));
+            }
+            setTrackingState({ currentDomain: null, startTime: null });
+            checkGoals();
+            if (callback) callback();
+          });
+        }
+      });
+      return;
+    }
+
+    // Browser is focused. Check active tab.
+    const activeTab = window.tabs.find(t => t.active);
+    const domain = getDomain(activeTab?.url);
+
+    getTrackingState((state) => {
+      const { currentDomain, startTime } = state;
+
+      if (domain && domain === currentDomain && startTime) {
+        // Normal increment
+        const seconds = Math.floor((now - startTime) / 1000);
+        storeTime(domain, seconds, () => {
+          setTrackingState({ currentDomain: domain, startTime: now });
+          checkGoals();
+          if (callback) callback();
+        });
+      } else {
+        // Domain changed or tracking was off
+        if (currentDomain && startTime) {
+          storeTime(currentDomain, Math.floor((now - startTime) / 1000));
+        }
+        setTrackingState({ 
+          currentDomain: domain, 
+          startTime: domain ? now : null 
+        });
         checkGoals();
         if (callback) callback();
-      });
-    } else {
-      checkGoals();
-      if (callback) callback();
-    }
+      }
+    });
   });
 }
 
